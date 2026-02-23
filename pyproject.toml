@@ -1,0 +1,17 @@
+[project]
+name = "playground"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aio-pika>=9.6.1",
+    "alembic>=1.18.4",
+    "django>=6.0.2",
+    "django-environ>=0.13.0",
+    "fastapi[standard]>=0.132.0",
+    "psycopg[binary,pool]>=3.3.3",
+    "pydantic-settings>=2.13.1",
+    "redis>=7.2.0",
+    "sqlalchemy[asyncio]>=2.0.46",
+]

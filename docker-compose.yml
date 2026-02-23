@@ -1,0 +1,74 @@
+services:
+  # Database: The source of truth
+  db:
+    image: postgres:16-alpine
+    container_name: sandbox_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: sandbox_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Broker: Inter-service communication
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: sandbox_broker
+    ports:
+      - "5672:5672"   # RabbitMQ port
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  # Cache: Fast state/results
+  redis:
+    image: redis:7-alpine
+    container_name: sandbox_cache
+    ports:
+      - "6379:6379"
+
+  # Service A: FastAPI (The Producer)
+  api:
+    build: .
+    container_name: fastapi_app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      - db
+      - rabbitmq
+
+  # Service B: Worker (The Consumer)
+  worker:
+    build: .
+    container_name: async_worker
+    command: python app/worker.py
+    volumes:
+      - .:/app
+    env_file: .env
+    depends_on:
+      - rabbitmq
+      - redis
+
+  # Admin: Django
+  admin:
+    build: .
+    container_name: django_admin
+    command: python manage.py runserver 0.0.0.0:8080
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+    env_file: .env
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
