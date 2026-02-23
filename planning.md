@@ -12,15 +12,15 @@ We will split this into two distinct microservices to justify the use of a messa
 
 ### 2. The Core Tech Stack & Integration
 
-| Technology | Role | Implementation Detail |
-| --- | --- | --- |
-| **FastAPI** | API Layer | Utilizing `AsyncSession` for non-blocking DB calls. |
-| **Django** | Admin/Internal | Using `inspectdb` or shared models to provide a UI for the FastAPI data. |
-| **SQLAlchemy** | ORM | Version 2.0+ syntax with `asyncio` engine. |
-| **Alembic** | Migrations | Handles schema evolution for the SQLAlchemy models. |
-| **RabbitMQ** | Message Broker | Handles inter-service communication (e.g., Task Queues). |
-| **Redis** | Caching/State | Used for fast lookups or as a result backend. |
-| **Docker** | Containerization | Multi-stage builds to keep images slim. |
+| Technology     | Role              | Implementation Detail                                              |
+| -------------- | ----------------- | ------------------------------------------------------------------ |
+| **FastAPI**    | API Layer         | Utilizing `AsyncSession` for non-blocking DB calls.                |
+| **Django**     | Admin/Internal    | Using `inspectdb` or shared models to provide UI for FastAPI data. |
+| **SQLAlchemy** | ORM               | Version 2.0+ syntax with `asyncio` engine.                         |
+| **Alembic**    | Migrations        | Handles schema evolution for the SQLAlchemy models.                |
+| **RabbitMQ**   | Message Broker    | Handles inter-service communication (e.g., Task Queues).           |
+| **Redis**      | Caching/State     | Used for fast lookups or as a result backend.                      |
+| **Docker**     | Containerization  | Multi-stage builds to keep images slim.                            |
 
 ---
 
