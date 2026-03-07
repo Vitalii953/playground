@@ -1,0 +1,17 @@
+from pydantic import AnyUrl, EmailStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import lru_cache
+
+
+class Settings(BaseSettings):
+
+    personal_email: EmailStr
+    base_url: AnyUrl
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()  # type: ignore

@@ -10,8 +10,8 @@ from alembic import context
 
 sys.path.insert(0, os.getcwd())
 
-from app.config import settings
-from app.models import Base
+from app.core.config import settings
+from app.models.players import Base
 
 
 config = context.config

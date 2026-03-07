@@ -1,14 +1,15 @@
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from app.config import settings
+from backend.core.config import settings
 
 
-# The engine is created once at import time; if you want to support runtime
-# reconfiguration you could move this into a factory.
 engine = create_async_engine(
     str(settings.database_url),
     echo=settings.debug,
-    future=True,
+    pool_size=20,
+    max_overflow=10,
+    pool_pre_ping=True,
+    connect_args={"timeout": 10},
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -18,7 +19,7 @@ AsyncSessionLocal = async_sessionmaker(
     )
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncGenerator[AsyncSession]:
     """Get a database session."""
     async with AsyncSessionLocal() as session:
         yield session
