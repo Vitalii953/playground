@@ -6,7 +6,11 @@ languages = Literal["en", "fr"]
 
 
 class GameSettings(BaseModel):
-    """Enforce correct settings at runtime"""
+    """
+    Enforce correct settings at runtime
+    low-level, managed MAINLY through a database in high-level functions. 
+    NOT HERE!!!
+    """
 
     current_language: languages = "en"
     # for pydantic validation only

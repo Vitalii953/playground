@@ -1,57 +1,65 @@
-from game.gameplay.equipment.items.item import Item  # circular import not possible here
+from game_internals.core.schemas.items import Gear, Weapon, Accessory
 
-# # # WEAPONS # # #
-SWORDS = {
-    "wooden_sword": Item("wooden sword", "weapon", attack_add=5),
-    "iron_sword": Item("iron sword", "weapon", attack_add=5),
-    "sharp_axe": Item("sharp axe", "weapon", attack_multiply=1.05, attack_add=3),
-    "steel_hammer": Item("steel hammer", "weapon", attack_multiply=1.3, attack_add=4),
+
+
+# ── weapons ───────────────────────────────────────────────────────────────────
+
+SWORDS: dict[str, Weapon] = {
+    "wooden_sword": Weapon(name="Wooden Sword", attack_add=5, slot="one-handed"),
+    "iron_sword": Weapon(name="Iron Sword", attack_add=8, slot="one-handed"),
+    "sharp_axe": Weapon(name="Sharp Axe", attack_add=3, slot="one-handed"),
+    "steel_hammer": Weapon(name="Steel Hammer", attack_add=4, slot="two-handed"),
 }
 
-# # # HELMETS # # #
-HELMETS = {
-    "shark_hat": Item("shark hat", "helmet", hp_add=7),
-    "miner_hat": Item("miner hat", "helmet", hp_multiply=1.03, hp_add=15),
-    "box_hat": Item("box hat", "helmet", hp_add=10),
-    "knight_helmet": Item("knight helmet", "helmet", hp_multiply=1.8),
+# ── helmets ───────────────────────────────────────────────────────────────────
+
+HELMETS: dict[str, Gear] = {
+    "shark_hat": Gear(name="Shark Hat", hp_add=7, slot="helmet"),
+    "miner_hat": Gear(name="Miner Hat", hp_add=15, slot="helmet"),
+    "box_hat": Gear(name="Box Hat", hp_add=10, slot="helmet"),
+    "knight_helmet": Gear(name="Knight Helmet", hp_add=20, slot="helmet"),
 }
 
-# # # CHESTS # # #
-CHESTS = {
-    "leather_armor": Item("leather armor", "chest", hp_add=10),
-    "chainmail_armor": Item("chainmail armor", "chest", hp_multiply=1.2),
-    "iron_armor": Item("iron armor", "chest", hp_multiply=1.5, hp_add=20),
-    "dragon_scale_armor": Item("dragon scale armor", "chest", hp_multiply=2, hp_add=50),
+# ── chests ────────────────────────────────────────────────────────────────────
+
+CHESTS: dict[str, Gear] = {
+    "leather_armor": Gear(name="Leather Armor", hp_add=10, slot="chestplate"),
+    "chainmail_armor": Gear(name="Chainmail Armor", hp_add=20, slot="chestplate"),
+    "iron_armor": Gear(name="Iron Armor", hp_add=35, slot="chestplate"),
+    "dragon_scale_armor": Gear(name="Dragon Scale Armor", hp_add=50, slot="chestplate"),
 }
 
-# # # BOOTS # # #
-BOOTS = {
-    "leather_boots": Item("leather boots", "boots", speed=6),
-    "iron_boots": Item("iron boots", "boots", speed=8, hp_add=5),
-    "swift_boots": Item("swift boots", "boots", speed=11),
-    "dragon_boots": Item("dragon boots", "boots", speed=10, hp_multiply=1.1),
+# ── boots ─────────────────────────────────────────────────────────────────────
+
+BOOTS: dict[str, Gear] = {
+    "leather_boots": Gear(name="Leather Boots", hp_add=0, speed_add=6, slot="boots"),
+    "iron_boots": Gear(name="Iron Boots", hp_add=5, speed_add=8, slot="boots"),
+    "swift_boots": Gear(name="Swift Boots", hp_add=0, speed_add=11, slot="boots"),
+    "dragon_boots": Gear(name="Dragon Boots", hp_add=5, speed_add=10, slot="boots"),
 }
 
-# # # WINGS # # #
-WINGS = {
-    "angel_wings": Item(
-        "angel wings", "wings", attack_multiply=1.2, hp_multiply=1.2, speed=16
+# ── wings (accessories) ───────────────────────────────────────────────────────
+
+WINGS: dict[str, Accessory] = {
+    "angel_wings": Accessory(
+        name="Angel Wings", hp_multiply=1.2, attack_multiply=1.2, slot="finger"
     ),
-    "demonic_wings": Item(
-        "demonic wings", "wings", attack_multiply=1.5, hp_multiply=1.3, speed=14
+    "demonic_wings": Accessory(
+        name="Demonic Wings", hp_multiply=1.3, attack_multiply=1.5, slot="finger"
     ),
-    "dragon_wings": Item(
-        "dragon wings", "wings", attack_multiply=2, hp_multiply=2, speed=10
+    "dragon_wings": Accessory(
+        name="Dragon Wings", hp_multiply=2.0, attack_multiply=2.0, slot="finger"
     ),
 }
 
-# when need to access item by type
-ALL_ITEMS = {
-    "swords": SWORDS,
-    "helmets": HELMETS,
-    "chests": CHESTS,
-    "boots": BOOTS,
-    "wings": WINGS,
+# ── full catalog ──────────────────────────────────────────────────────────────
+
+CATALOG: dict[str, Gear | Weapon | Accessory] = {
+    **SWORDS,
+    **HELMETS,
+    **CHESTS,
+    **BOOTS,
+    **WINGS,
 }
 
 # when need to access any items inside dicts
@@ -63,11 +71,13 @@ ALL_ITEMS_FLAT = [
     *WINGS.values(),
 ]
 
-# by chances
-CATEGORY_CHANCES = {
-    "swords": 0.4,
-    "helmets": 0.25,
-    "chests": 0.2,
-    "boots": 0.149,
-    "wings": 0.001,
-}
+# by chances 
+CATEGORY_CHANCES = [
+    0.4,
+    0.25,
+    0.2,
+    0.149,
+    0.001,
+]
+
+# WIP. Need to wip them all together

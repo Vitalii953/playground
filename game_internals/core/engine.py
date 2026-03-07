@@ -1,12 +1,7 @@
-from __future__ import annotations
 from random import random, choice
-import logging
 
 
-log = logging.getLogger(__name__)
-
-
-def game_loop(player: Player, language: str = None):  # type: ignore
+def game_loop(player: Player, language: str = None): 
     """
     Brain of the game.
 
@@ -22,9 +17,6 @@ def game_loop(player: Player, language: str = None):  # type: ignore
     from game.gameplay.entities.player import Player
     from game.menu.menu_terminal import slow_print
     import time
-
-    if language is None:
-        language = get_current_language()
 
     log.info(f"{player.name}'s game_loop initialized at floor {player.floor}")
 
