@@ -33,9 +33,7 @@ async def main():
     queue = await channel.declare_queue(settings.task_queue, durable=True)
 
     # setup redis client once
-    redis_client = redis.from_url(
-        str(settings.redis_url), encoding="utf-8", decode_responses=True
-    )
+    redis_client = redis.from_url(str(settings.redis_url), encoding="utf-8", decode_responses=True)
 
     # consumer callback needs redis_client; use lambda to bind
     await queue.consume(lambda msg: process_message(msg, redis_client))

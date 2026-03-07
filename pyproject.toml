@@ -12,6 +12,7 @@ dependencies = [
     "fastapi[standard]>=0.132.0",
     "psycopg[binary,pool]>=3.3.3",
     "pydantic-settings>=2.13.1",
+    "pytest>=9.0.2",
     "redis>=7.2.0",
     "sqlalchemy[asyncio]>=2.0.46",
 ]
