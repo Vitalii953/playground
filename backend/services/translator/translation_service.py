@@ -2,7 +2,7 @@
 this is another low-level module. I will be calling it just once during initialization ig
 """
 import httpx # type: ignore
-from translator.config import get_settings  
+from backend.services.translator.config import get_settings  
 from game_internals.core.schemas.game_settings import languages
 from redis.asyncio import Redis
 import logging
@@ -36,8 +36,10 @@ async def translate(text: str, to_language: languages, redis: Redis) -> str:
             r.raise_for_status()    # fails loudly if goes south
     except httpx.HTTPStatusError as e:
         logger.error("Mymemory responded with 4xx or 5xx: %s", e)
+        raise
     except httpx.RequestError as e:   # generic httpx error
         logger.error("Mymemory error while requesting data: %s", e)
+        raise
 
     result = r.json()["responseData"]["translatedText"]
 

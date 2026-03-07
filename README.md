@@ -17,3 +17,6 @@ app/
 └── workers/               # also calls core, not the API
     └── handlers/
         └── loot.py        # calls core.progression
+
+
+# current progress: game WIP. translator finished, all tests pass.
