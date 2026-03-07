@@ -1,13 +1,15 @@
 # new features: translator api plus caching server-side, durable redis storage
+# new rule: NEVER LOG IN HIGH-LEVEL FUNCTIONS!!!!
+
 
 app/
-├── core/                  # shared game logic — knows nothing about HTTP
+├── core/                  # shared game logic - knows nothing about HTTP
 │   ├── combat.py
 │   ├── dungeon.py
 │   ├── progression.py
 │   └── translation.py
 │
-├── api/                   # FastAPI — thin layer, calls core
+├── api/                   # FastAPI - thin layer, calls core
 │   └── routes/
 │       ├── dungeon.py     # calls core.dungeon
 │       └── combat.py     # calls core.combat
