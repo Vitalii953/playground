@@ -4,6 +4,7 @@ def wrap_equal(func):
     text
     ====
     """
+
     def wrapper(*args, **kwargs):
         print(f'\n{"="*40}')
         res = func(*args, **kwargs)
@@ -19,6 +20,7 @@ def wrap_hyphen(func):
     text
     ----
     """
+
     def wrapper(*args, **kwargs):
         print(f'\n{"-"*40}')
         res = func(*args, **kwargs)
@@ -37,4 +39,3 @@ def slow_print(text: str, delay: float = 0.05, hold: float = 1.5):
         sys.stdout.flush()
         time.sleep(delay)
     print()
-    

@@ -1,7 +1,7 @@
 from random import random, choice
 
 
-def game_loop(player: Player, language: str = None): 
+def game_loop(player: Player, language: str = None):
     """
     Brain of the game.
 

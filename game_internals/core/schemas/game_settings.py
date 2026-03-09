@@ -8,7 +8,7 @@ languages = Literal["en", "fr"]
 class GameSettings(BaseModel):
     """
     Enforce correct settings at runtime
-    low-level, managed MAINLY through a database in high-level functions. 
+    low-level, managed MAINLY through a database in high-level functions.
     NOT HERE!!!
     """
 
@@ -21,5 +21,3 @@ class GameSettings(BaseModel):
         if self.current_language not in self.available_languages:
             raise ValueError(f"{self.current_language} is an invalid language")
         return self
-    
-    
