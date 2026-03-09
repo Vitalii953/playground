@@ -5,7 +5,7 @@ from pydantic import BaseModel
 # do not use elsewhere
 AvailableSlotsGear = Literal["helmet", "chestplate", "leggings", "boots"]
 AvailableSlotsAccessories = Literal["finger"]  # just this place for now
-SlotWeaponLight = Literal["one-handed", "shield"]
+SlotWeaponLight = Literal["one-handed", "one-handed-and-shield", "shield"]  
 SlotWeaponHeavy = Literal["two-handed"]
 
 
@@ -17,19 +17,44 @@ class Gear(BaseModel):
 
     name: str
     hp_add: float
-    speed_add: float = 0  # this is only for boots, maybe accessories too
+    speed_add: float = 0  # this is only for boots
     slot: AvailableSlotsGear
+    drop_rate: float
 
 
-class Weapon(BaseModel):
+class _Weapon(BaseModel):
+    """
+    Base class for weapons. Shouldn't be used directly
+    """
     name: str
-    attack_add: float | None  # None for shields
-    hp_add: float | None  # None for some weapons only
     slot: SlotWeaponLight | SlotWeaponHeavy
+    drop_rate: float
+    # TODO: replace not universally-used values
+
+
+class WeaponOnly(_Weapon):
+    slot: SlotWeaponLight = "one-handed"
+    attack_add: float
+
+class WeaponAndShield(_Weapon):
+    slot: SlotWeaponLight = "one-handed-and-shield"
+    attack_add: float
+    hp_add: float
+
+class ShieldOnly(_Weapon):
+    slot: SlotWeaponLight = "shield"
+    hp_add: float
+
+
+class TwoHanded(_Weapon):
+    slot: SlotWeaponHeavy = "two-handed"
+    attack_add: float
 
 
 class Accessory(BaseModel):
     name: str
     hp_multiply: float
     attack_multiply: float
+    speed_multiply: float | None = None   # shouldn't be used universally
     slot: AvailableSlotsAccessories
+    drop_rate: float
