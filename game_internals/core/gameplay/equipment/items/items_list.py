@@ -1,4 +1,11 @@
-from game_internals.core.schemas.items import Gear, Accessory, WeaponOnly, WeaponAndShield, ShieldOnly, TwoHanded
+from game_internals.core.schemas.items import (
+    Gear,
+    Accessory,
+    WeaponOnly,
+    WeaponAndShield,
+    ShieldOnly,
+    TwoHanded,
+)
 
 
 # ── weapons ───────────────────────────────────────────────────────────────────
@@ -121,6 +128,7 @@ BOOTS: dict[str, Gear] = {
     ),
 }
 
+# nuance: random.choices does NOT demand drop_rate to be 1 in sum
 RINGS: dict[str, Accessory] = {
     "angel_ring": Accessory(
         name="Angel Ring",

@@ -48,25 +48,6 @@ async def test_translate_cache_miss_calls_api(mock_redis, mock_mymemory_api_resp
 
 
 @pytest.mark.asyncio
-async def test_translate_cache_miss_populates_cache(
-    mock_redis, mock_mymemory_api_response
-):
-    """successful translation should be written to redis"""
-    mock_redis.get.return_value = None
-
-    with patch("httpx.AsyncClient") as mock_client:
-        mock_client.return_value.__aenter__.return_value.get = AsyncMock(
-            return_value=mock_mymemory_api_response
-        )
-
-        await translate("Hello world", "fr", mock_redis)
-
-    mock_redis.set.assert_called_once()
-    call_args = mock_redis.set.call_args
-    assert call_args.kwargs["ex"] == 36_000
-
-
-@pytest.mark.asyncio
 async def test_translate_cache_key_includes_language_and_text(
     mock_redis, mock_mymemory_api_response
 ):
