@@ -113,3 +113,57 @@ def test_eval_runtime_updates_best(runs, expected, player: Player):
         got = player.eval_runtime(r)
     assert got == expected
     assert player.best_run == expected
+
+
+def test_is_alive_and_heal(player: Player):
+    # down to zero or below => not alive
+    player.current_hp = 0
+    assert not player.is_alive()
+    player.current_hp = -5
+    assert not player.is_alive()
+
+    # heal should not exceed base_hp and should change current_hp only
+    player.current_hp = 10
+    healed = player.heal_by(20)
+    assert healed == player.base_hp
+    assert player.current_hp == player.base_hp
+
+
+def test_attack_reduces_target_hp(monkeypatch, player: Player):
+    # use a simple dummy target with hp fields
+    class Dummy(Entity):
+        def is_alive(self):
+            return True
+
+        def heal_by(self):
+            pass
+
+        def attack_(self):
+            pass
+
+        def die(self):
+            pass
+
+    target = Dummy(name="t", hp=50, attack=0, speed=0)  # start with 50 hp
+
+    # patch uniform to a predictable value (no crit)
+    monkeypatch.setattr("game_internals.core.gameplay.entities.player.uniform", lambda a, b: 1.0)
+    dmg = player.attack_(target)
+    assert dmg == pytest.approx(min(round(player.current_attack * 1.0, 2), 50))
+    assert target.current_hp == 50 - dmg
+
+    # patch for critical hit
+    monkeypatch.setattr("game_internals.core.gameplay.entities.player.uniform", lambda a, b: 1.3)
+    target.current_hp = 50
+    dmg2 = player.attack_(target)
+    # crit adds 20% of base_attack
+    expected2 = min(round(player.current_attack * 1.3, 2), 50) + player.base_attack * 0.2
+    assert dmg2 == pytest.approx(expected2)
+
+
+def test_die_resets_floor_and_records_run(player: Player):
+    player.floor = 5
+    result = player.die(123.4)
+    # die returns nothing; effect is side‑effects
+    assert player.floor == 0
+    assert player.best_run == 123.4

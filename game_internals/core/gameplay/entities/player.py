@@ -1,4 +1,5 @@
 from __future__ import annotations
+from random import uniform
 from game_internals.core.gameplay.entities.entity import Entity  
 from game_internals.core.schemas.items import Accessory, Gear, ShieldOnly, TwoHanded, WeaponAndShield, WeaponOnly, _Weapon
 
@@ -143,6 +144,24 @@ class Player(Entity):
             self.best_run = run_time
         return self.best_run
     
+    def is_alive(self) -> bool:
+        return self.current_hp > 0
+
+    def heal_by(self, value: int | float) -> int | float:
+        self.current_hp = min(self.current_hp + value, self.base_hp)
+        return self.current_hp
+
+
+    def attack_(self, target: Entity) -> int | float:
+        multiplier = uniform(0.6, 1.5)
+        crit: bool = multiplier >= 1.2
+        dmg = min(round(self.current_attack * multiplier, 2), 50)  # 50 attack is max
+        if crit:
+            dmg += self.base_attack * 0.2
+        target.base_hp -= min(dmg, target.base_hp)
+
+        return dmg
+
 
     def die(self, run_time: int | float):
         self.eval_runtime(run_time)
