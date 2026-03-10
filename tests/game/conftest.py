@@ -95,7 +95,7 @@ def accessory_factory():
             slot=slot,  # type: ignore[arg-type]
             hp_multiply=kwargs.pop("hp_multiply", 1),
             attack_multiply=kwargs.pop("attack_multiply", 1),
-            speed_multiply=kwargs.pop("speed_multiply", None),
+            speed_multiply=kwargs.pop("speed_multiply", 0),
             drop_rate=kwargs.pop("drop_rate", 1.0),
             **kwargs,
         )

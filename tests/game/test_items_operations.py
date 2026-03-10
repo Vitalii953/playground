@@ -25,7 +25,7 @@ class TestPickRandItemByCategory:
     def test_valid_category_returns_item_from_catalog(self, sample_catalog):
         """should return a valid item when given a valid category"""
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             sample_catalog,
         ):
             result = pick_rand_item_by_category("one-handed")
@@ -36,7 +36,7 @@ class TestPickRandItemByCategory:
     def test_valid_category_returns_pydantic_model(self, sample_catalog):
         """returned item should be a validated pydantic model"""
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             sample_catalog,
         ):
             result = pick_rand_item_by_category("helmet")
@@ -51,7 +51,7 @@ class TestPickRandItemByCategory:
     def test_invalid_category_raises_type_error(self, sample_catalog):
         """should raise TypeError for invalid category"""
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             sample_catalog,
         ):
             with pytest.raises(TypeError, match="Invalid category provided"):
@@ -93,7 +93,7 @@ class TestPickRandItemByCategory:
         }
 
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             extended_catalog,
         ):
             for category in CATEGORIES:
@@ -103,7 +103,7 @@ class TestPickRandItemByCategory:
     def test_category_filtering_works_correctly(self, sample_catalog):
         """should only return items matching the requested category"""
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             sample_catalog,
         ):
             result = pick_rand_item_by_category("helmet")
@@ -125,7 +125,7 @@ class TestPickRandItemByCategory:
         }
 
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             catalog,
         ):
             results = [pick_rand_item_by_category("one-handed") for _ in range(100)]
@@ -144,7 +144,7 @@ class TestPickRandomItem:
     def test_returns_item_from_catalog(self, sample_catalog):
         """should return a valid item from catalog"""
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             sample_catalog,
         ):
             result = pick_random_item()
@@ -160,7 +160,7 @@ class TestPickRandomItem:
     def test_returns_pydantic_model(self, sample_catalog):
         """returned item should be a validated pydantic model"""
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             sample_catalog,
         ):
             result = pick_random_item()
@@ -176,7 +176,7 @@ class TestPickRandomItem:
     def test_multiple_calls_can_return_different_items(self, sample_catalog):
         """multiple calls should be able to return different items"""
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             sample_catalog,
         ):
             results = set(pick_random_item().name for _ in range(50))
@@ -196,7 +196,7 @@ class TestPickRandomItem:
         }
 
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             catalog,
         ):
             results = [pick_random_item() for _ in range(100)]
@@ -208,7 +208,7 @@ class TestPickRandomItem:
     def test_returns_consistent_item_types(self, sample_catalog):
         """all returned items should have required attributes"""
         with patch(
-            "game_internals.core.gameplay.equipment.items.items_operations.CATALOG",
+            "game_internals.core.gameplay.equipment.items_operations.CATALOG",
             sample_catalog,
         ):
             for _ in range(20):

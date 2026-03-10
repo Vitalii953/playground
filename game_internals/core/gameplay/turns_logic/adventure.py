@@ -3,7 +3,7 @@ from game_internals.core.gameplay.entities.enemy import Enemy
 from game_internals.core.gameplay.entities.player import Player
 
 
-def take_turn(player: Player, enemy: Enemy) -> dict:  
+def take_turn(player: Player, enemy: Enemy) -> dict:
     """
     Executes only 1 turn, doesn't handle everything
     """
@@ -16,8 +16,6 @@ def take_turn(player: Player, enemy: Enemy) -> dict:
             enemy_hit = enemy.attack_target(player)
             report.append(enemy_hit)
     return {"player HP": player.hp, "enemy HP": enemy.hp, "report": report}
-
-    
 
 
 def flee(player: Player, enemy: Enemy) -> dict:
@@ -37,7 +35,7 @@ def flee(player: Player, enemy: Enemy) -> dict:
         return {"message": "not escaped!", "enemy": enemy.name, "report": res}
 
 
-def fight_to_death(player: Player, enemy: Enemy) -> dict:  
+def fight_to_death(player: Player, enemy: Enemy) -> dict:
 
     turns = 0
     report = []

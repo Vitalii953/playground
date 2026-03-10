@@ -58,6 +58,6 @@ class Accessory(BaseModel):
     name: str
     hp_multiply: float
     attack_multiply: float
-    speed_multiply: float | None = None  # shouldn't be used universally
+    speed_multiply: float = 0  # shouldn't be used universally
     slot: AvailableSlotsAccessories
     drop_rate: float

@@ -22,12 +22,16 @@ def test_attack_affects_target(monkeypatch):
     target = Player(name="p", hp=30, attack=0, speed=0)
 
     # patch uniform to deterministic values
-    monkeypatch.setattr("game_internals.core.gameplay.entities.enemy.uniform", lambda a, b: 1.0)
+    monkeypatch.setattr(
+        "game_internals.core.gameplay.entities.enemy.uniform", lambda a, b: 1.0
+    )
     dmg = e.attack_(target)
     assert dmg == pytest.approx(min(round(e.base_attack * 1.0, 2), 50))
     assert target.current_hp == 30 - dmg
 
-    monkeypatch.setattr("game_internals.core.gameplay.entities.enemy.uniform", lambda a, b: 1.3)
+    monkeypatch.setattr(
+        "game_internals.core.gameplay.entities.enemy.uniform", lambda a, b: 1.3
+    )
     target.current_hp = 30
     dmg2 = e.attack_(target)
     expected2 = min(round(e.base_attack * 1.3, 2), 50) + e.base_attack * 0.2
@@ -38,4 +42,3 @@ def test_attack_affects_target(monkeypatch):
 def test_die_returns_loot_and_does_not_modify():
     e = Enemy(name="e", hp=5, attack=1, speed=1, coins_loot=12)
     assert e.die() == 12
-

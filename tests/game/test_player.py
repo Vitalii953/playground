@@ -14,13 +14,13 @@ def _attach_multiplier(item, attr: str, value: float) -> None:
 
 
 def test_initial_totals_equal_base_stats(player: Player):
-    assert player.total_hp == player.hp
-    assert player.total_attack == player.attack
-    assert player.total_speed == player.speed
+    assert player.total_hp == player.base_hp
+    assert player.total_attack == player.base_attack
+    assert player.total_speed == player.base_speed
 
 
 def test_total_hp_additive_and_multiplicative(player: Player, gear_factory):
-    base = player.hp
+    base = player.base_hp
     g1 = gear_factory(slot="helmet", hp_add=10)
     g2 = gear_factory(slot="chestplate", hp_add=5)
     _attach_multiplier(g2, "hp_multiply", 2)  # not part of the schema
@@ -31,8 +31,8 @@ def test_total_hp_additive_and_multiplicative(player: Player, gear_factory):
 
 
 def test_total_attack_and_speed_behave_similarly(player: Player, gear_factory):
-    base_a = player.attack
-    base_s = player.speed
+    base_a = player.base_attack
+    base_s = player.base_speed
     gear_a = gear_factory(slot="boots", speed_add=3)
     _attach_multiplier(gear_a, "speed_multiply", 4)
     player.equip(gear_a)
@@ -125,12 +125,14 @@ def test_is_alive_and_heal(player: Player):
     # heal should not exceed base_hp and should change current_hp only
     player.current_hp = 10
     healed = player.heal_by(20)
-    assert healed == player.base_hp
-    assert player.current_hp == player.base_hp
+    assert healed == 30  # 10 + 20, capped by base_hp which is 100
+    assert player.current_hp == 30
 
 
 def test_attack_reduces_target_hp(monkeypatch, player: Player):
     # use a simple dummy target with hp fields
+    from game_internals.core.gameplay.entities.entity import Entity
+
     class Dummy(Entity):
         def is_alive(self):
             return True
@@ -147,17 +149,23 @@ def test_attack_reduces_target_hp(monkeypatch, player: Player):
     target = Dummy(name="t", hp=50, attack=0, speed=0)  # start with 50 hp
 
     # patch uniform to a predictable value (no crit)
-    monkeypatch.setattr("game_internals.core.gameplay.entities.player.uniform", lambda a, b: 1.0)
+    monkeypatch.setattr(
+        "game_internals.core.gameplay.entities.player.uniform", lambda a, b: 1.0
+    )
     dmg = player.attack_(target)
     assert dmg == pytest.approx(min(round(player.current_attack * 1.0, 2), 50))
     assert target.current_hp == 50 - dmg
 
     # patch for critical hit
-    monkeypatch.setattr("game_internals.core.gameplay.entities.player.uniform", lambda a, b: 1.3)
+    monkeypatch.setattr(
+        "game_internals.core.gameplay.entities.player.uniform", lambda a, b: 1.3
+    )
     target.current_hp = 50
     dmg2 = player.attack_(target)
     # crit adds 20% of base_attack
-    expected2 = min(round(player.current_attack * 1.3, 2), 50) + player.base_attack * 0.2
+    expected2 = (
+        min(round(player.current_attack * 1.3, 2), 50) + player.base_attack * 0.2
+    )
     assert dmg2 == pytest.approx(expected2)
 
 
