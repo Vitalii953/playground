@@ -6,6 +6,7 @@ from game_internals.core.schemas.items import (
     ShieldOnly,
     TwoHanded,
 )
+from typing import TypeAlias, Literal
 
 
 # ── weapons ───────────────────────────────────────────────────────────────────
@@ -168,4 +169,30 @@ CATALOG: dict[
     **BOOTS,
     **RINGS,
 }
-# this might be useful for items_operations? Probably, it gives pydantic models right away
+# this might be useful for items_operations
+
+# types for functions
+CATEGORIES_TYPES: TypeAlias = Literal[
+    "one-handed",  # WeaponOnly
+    "one-handed-and-shield",  # WeaponAndShield
+    "two-handed",  # TwoHanded
+    "shield",  # ShieldOnly
+    "helmet",  # Gear
+    "chestplate",  # Gear
+    "leggings",  # Gear
+    "boots",  # Gear
+    "finger",  # Accessory
+]
+
+# they must correspond to what pydantic accepts
+CATEGORIES = (
+    "one-handed",
+    "one-handed-and-shield",
+    "two-handed",
+    "shield",
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "finger",
+)

@@ -6,40 +6,12 @@ from game_internals.core.schemas.items import (
     ShieldOnly,
     TwoHanded,
 )
-from game_internals.core.gameplay.equipment.items.items_list import CATALOG
-from typing import Literal, TypeAlias
+from game_internals.core.gameplay.equipment.items.items_list import CATALOG, CATEGORIES, CATEGORIES_TYPES
 from random import choices
 import logging
 
 
 logger = logging.getLogger(__name__)
-
-
-# types for functions
-CATEGORIES_TYPES: TypeAlias = Literal[
-    "one-handed",  # WeaponOnly
-    "one-handed-and-shield",  # WeaponAndShield
-    "two-handed",  # TwoHanded
-    "shield",  # ShieldOnly
-    "helmet",  # Gear
-    "chestplate",  # Gear
-    "leggings",  # Gear
-    "boots",  # Gear
-    "finger",  # Accessory
-]
-
-# they must correspond to what pydantic accepts
-CATEGORIES = (
-    "one-handed",
-    "one-handed-and-shield",
-    "two-handed",
-    "shield",
-    "helmet",
-    "chestplate",
-    "leggings",
-    "boots",
-    "finger",
-)
 
 
 def pick_rand_item_by_category(
@@ -80,5 +52,3 @@ def pick_random_item() -> (
     final_item = CATALOG[chosen_key]
 
     return final_item  # validated pydantic model
-
-

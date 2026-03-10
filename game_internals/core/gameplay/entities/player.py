@@ -1,159 +1,137 @@
 from __future__ import annotations
-from game.gameplay.entities.entities import Entity  # circular import not possible here
+from game_internals.core.gameplay.entities.entities import Entity  
+from game_internals.core.schemas.items import Accessory, Gear, ShieldOnly, TwoHanded, WeaponAndShield, WeaponOnly, _Weapon
 
-import time
-import logging
-from typing import Optional
+"""
+IMPORTANT: stats MUST be read at the start of each turn to determine to:
+see if player is alive; update buffs from equipment
+"""
 
-
-log = logging.getLogger(__name__)
-
-
-class Player(Entity):  # type: ignore
+class Player(Entity):  
 
     def __init__(
         self, name: str, hp: int | float, attack: int | float, speed: int | float
     ):
-        from game.gameplay.entities.entities import Entity
-        from game.gameplay.equipment.items.item import Item
 
         super().__init__(name=name, hp=hp, attack=attack, speed=speed)
-        self.base_hp = self.hp
-        self.base_attack = self.attack
-        self.base_speed = self.speed
 
-        self.inventory: dict[Item, int] = {}
-        self.equipment: dict[str, Item | None] = {
-            "weapon": None,
+        self.equipped: dict[
+            str,
+            Gear
+            | WeaponOnly
+            | WeaponAndShield
+            | ShieldOnly
+            | TwoHanded
+            | Accessory
+            | None,
+        ] = {
+            "one-handed": None,            # weapon
+            "one-handed-and-shield": None,  # weapon
+            "two-handed": None,     # weapon
+            "shield": None,     # weapon too
             "helmet": None,
-            "chest": None,
+            "chestplate": None,
+            "leggings": None,
             "boots": None,
-            "wings": None,
+            "finger": None,
         }
 
-        # flags added if suspended (triggered by logs)
-        self.flags = 0
-        # coins will be used to buy items that give lifetime buffs
-        self.coins = 0
+        self.coins = 0  # coins will be used to buy stuff
         self.floor = 0
-        self.start_time: Optional[float] = None
-        self.best_run: Optional[tuple[int, float | None]] = None
+        self.best_run: int | float | None = None  # i measure in seconds
 
-        log.info(
-            f"{self.name} has been created with the following stats:\n{self.hp}\n{self.attack}\n{self.speed}\nEquipment: {self.equipment}"
-        )
 
-        # ====== EQUIPMENT =======
+    @property
+    # reminder: properties are read-only
+    def total_hp(self) -> int | float:
+        """
+        only access hp via this API
+        """
+        hp = self.hp
+        for item in self.equipped.values():
+            # we can extract attributes
+            if item is not None and hasattr(item, "hp_add"):
+                hp += getattr(item, "hp_add")  # gettatr to shut up IDE
 
-    def add_item(self, item: Item, quantity: int = 1) -> None:  # type: ignore
-        from game.gameplay.equipment.items.item import Item
+        # this must run after because multipliers multiply overall hp
+        for item in self.equipped.values(): 
+            if item is not None and hasattr(item, "hp_multiply"):
+                hp *= getattr(item, "hp_multiply")
 
-        if not isinstance(item, Item):
-            self.flags += 1
-            log.warning(
-                f"{self.name} attempted to add {item} which is invalid. Flagged"
-            )
-            raise TypeError(f"Invalid type ({item}) wasn't added to the inventory")
-        self.inventory[item] = self.inventory.get(item, 0) + quantity
-        log.info(f"{self.name} put {quantity} of {item.name} in their inventory")
+        return hp
+    
 
-    def remove_item(self, item: Item, quantity: int = 1) -> None:  # type: ignore
-        from game.gameplay.equipment.errors import EquipmentError
-        from game.gameplay.equipment.items.item import Item
+    @property
+    def total_attack(self) -> int | float:
+        # this reads all items at runtime and applies buffs
+        """
+        only access attack via this API
+        """
+        hp = self.hp
+        for item in self.equipped.values():
+            # we can extract attributes
+            if item is not None and hasattr(item, "attack_add"):
+                hp += getattr(item, "attack_add")  # gettatr to shut up IDE
 
-        if not isinstance(item, Item):
-            self.flags += 1
-            log.warning(
-                f"{self.name} attempted to remove {item} which is invalid. Flagged"
-            )
-            raise TypeError(f"Invalid type ({item}) wasn't removed from the inventory")
-        current = self.inventory.get(item, 0)
-        if quantity > current:
-            self.flags += 1
-            log.warning(
-                f"{self.name} attempted to remove {item.name} in quantity of {quantity}. Flagged"
-            )
-            raise EquipmentError(
-                f"Not enough {item.name} to remove. You currently have {current} of {item.name}, {quantity} requested."
-            )
+        # this must run after because multipliers multiply overall hp
+        for item in self.equipped.values():
+            if item is not None and hasattr(item, "attack_multiply"):
+                hp *= getattr(item, "attack_multiply")
 
-        new_quantity = current - quantity
-        if new_quantity == 0:
-            del self.inventory[item]
-            log.info(
-                f"{item.name} deleted from {self.name}'s inventory because quantity reached 0"
-            )
-        else:
-            self.inventory[item] = new_quantity
-            log.info(
-                f"{self.name}'s new quantity of {item.name} has diminished. Now {new_quantity}"
-            )
+        return hp
 
-    def equip(self, slot: str, item: Item):  # type: ignore
-        from game.gameplay.equipment.items.item import Item
-        from game.gameplay.equipment.player_equipment import equip_item
 
-        # best option is to return it as equip_item contains returns too
-        equipped = equip_item(self, slot, item)
-        log.info(f"{self.name} equipped {item.name} to {slot}")
-        return equipped
+    @property
+    def total_speed(self) -> int | float:
+        # this reads all items at runtime and applies buffs
+        """
+        only access speed via this API
+        """
+        hp = self.hp
+        for item in self.equipped.values():
+            # we can extract attributes
+            if item is not None and hasattr(item, "speed_add"):
+                hp += getattr(item, "speed_add")  # gettatr to shut up IDE
 
-    # ====== TIMER, FLOOR =======
+        # this must run after because multipliers multiply overall hp
+        for item in self.equipped.values():
+            if item is not None and hasattr(item, "speed_multiply"):
+                hp *= getattr(item, "speed_multiply")
 
-    def start_timer(self):
-        if self.floor == 0:
-            self.start_time = time.time()
-            log.info(f"time started for {self.name}")
+        return hp
+        
 
-    def end_timer(self):
-        # edge case
-        if self.start_time is None:
-            self.flags += 1
-            log.warning(
-                f"{self.name} tried to end the timer without starting it. Flagged"
-            )
-            raise ValueError("end timer error: start is None")
+    def equip(self, item: Gear | WeaponOnly | WeaponAndShield | ShieldOnly | TwoHanded | Accessory) -> bool:
+        """
+        all equipment should be equipped via this method
+        prevents multiple types of Weapon from being equipped all at once
+        """
+        # handle weapons
+        if isinstance(item, _Weapon):
+            for slot in self.equipped: 
+                if slot in ("one-handed", "one-handed-and-shield", "two-handed", "shield"):
+                    self.equipped[slot] = None
+        self.equipped[item.slot] = item
+        return True
+    
 
-        end = time.time()
-        duration = end - self.start_time
+    def mount_floor(self, value: int = 1):
+        self.floor += value
+        return self.floor
 
-        # first run ever
-        if self.best_run is None:
-            self.best_run = (self.floor, duration)
-            log.info(
-                f"{self.name} has made their first run ever.\nFloor: {self.floor}\nDuration: {duration}"
-            )
-            return
 
-        # higher floor
-        if self.best_run[0] < self.floor:
-            self.best_run = (self.floor, duration)
-            log.info(
-                f"{self.name} has made it to a higher floor.\nFloor: {self.floor}\nDuration: {duration}"
-            )
-            return
+    def add_coins(self, value: int):
+        self.coins += value
+        return self.coins
 
-        # same floor but quicker
-        if self.best_run[0] == self.floor and self.best_run[1] > duration:
-            self.best_run = (self.floor, duration)
-            log.info(
-                f"{self.name} has made a new record on the same floor.\nFloor: {self.floor}\nDuration: {duration}"
-            )
-            return
 
-    def pass_floor(self):
-        self.floor += 1
-        log.info(f"1 floor passed for {self.name}")
+    def finish_run(self, run_time: int | float):
+        """
+        should be called at the end of every run, not just the best one
+        """
+        if self.best_run is None or run_time < self.best_run:
+            self.best_run = run_time
+        return self.best_run
+    
 
-    def end_run(self):
-        # end timer, reset floor, reset self.start_time
-        if self.start_time is None:
-            self.flags += 1
-            log.warning(
-                f"{self.name} tried to end run without starting a timer. Flagged"
-            )
-            raise ValueError("end run error: start is None")
-
-        self.end_timer()
-        self.floor = 0
-        self.start_time = None
+    
