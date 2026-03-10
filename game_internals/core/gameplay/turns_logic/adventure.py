@@ -1,11 +1,12 @@
-from __future__ import annotations
 from random import random
+from game_internals.core.gameplay.entities.enemy import Enemy
+from game_internals.core.gameplay.entities.player import Player
 
 
-def take_turn(player: Player, enemy: Enemy) -> dict:  # type: ignore
-    """Executes only 1 turn. Useful for debugging and may be a useful helper function."""
-    from game.gameplay.entities.enemies import Enemy
-    from game.gameplay.entities.player import Player
+def take_turn(player: Player, enemy: Enemy) -> dict:  
+    """
+    Executes only 1 turn, doesn't handle everything
+    """
 
     report = []
     if player.is_alive() and enemy.is_alive():
@@ -16,10 +17,10 @@ def take_turn(player: Player, enemy: Enemy) -> dict:  # type: ignore
             report.append(enemy_hit)
     return {"player HP": player.hp, "enemy HP": enemy.hp, "report": report}
 
+    
 
-def flee(player: Player, enemy: Enemy) -> dict:  # type: ignore
-    from game.gameplay.entities.player import Player
-    from game.gameplay.entities.enemies import Enemy
+
+def flee(player: Player, enemy: Enemy) -> dict:
 
     if player.speed > enemy.speed:
         player.floor += 1
@@ -36,9 +37,7 @@ def flee(player: Player, enemy: Enemy) -> dict:  # type: ignore
         return {"message": "not escaped!", "enemy": enemy.name, "report": res}
 
 
-def fight_to_death(player: Player, enemy: Enemy) -> dict:  # type: ignore
-    from game.gameplay.entities.player import Player
-    from game.gameplay.entities.enemies import Enemy
+def fight_to_death(player: Player, enemy: Enemy) -> dict:  
 
     turns = 0
     report = []

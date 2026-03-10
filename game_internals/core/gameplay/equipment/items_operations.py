@@ -6,7 +6,7 @@ from game_internals.core.schemas.items import (
     ShieldOnly,
     TwoHanded,
 )
-from game_internals.core.gameplay.equipment.items.items_list import CATALOG, CATEGORIES, CATEGORIES_TYPES
+from game_internals.core.gameplay.equipment.items_list import CATALOG, CATEGORIES, CATEGORIES_TYPES
 from random import choices
 import logging
 

@@ -1,9 +1,9 @@
 from __future__ import annotations
-from game_internals.core.gameplay.entities.entities import Entity  
+from game_internals.core.gameplay.entities.entity import Entity  
 from game_internals.core.schemas.items import Accessory, Gear, ShieldOnly, TwoHanded, WeaponAndShield, WeaponOnly, _Weapon
 
 """
-IMPORTANT: stats MUST be read at the start of each turn to determine to:
+IMPORTANT: stats MUST be read at the start of each turn to:
 see if player is alive; update buffs from equipment
 """
 
@@ -40,6 +40,11 @@ class Player(Entity):
         self.floor = 0
         self.best_run: int | float | None = None  # i measure in seconds
 
+        self.current_hp = self.total_hp   # smart thing - calls properties 
+        self.current_attack = self.total_attack  # for runtime and dynamic buffs
+        self.current_speed = self.total_speed
+
+
 
     @property
     # reminder: properties are read-only
@@ -47,7 +52,7 @@ class Player(Entity):
         """
         only access hp via this API
         """
-        hp = self.hp
+        hp = self.base_hp
         for item in self.equipped.values():
             # we can extract attributes
             if item is not None and hasattr(item, "hp_add"):
@@ -63,42 +68,43 @@ class Player(Entity):
 
     @property
     def total_attack(self) -> int | float:
-        # this reads all items at runtime and applies buffs
+
         """
         only access attack via this API
         """
-        hp = self.hp
+
+        atk = self.base_attack
         for item in self.equipped.values():
             # we can extract attributes
             if item is not None and hasattr(item, "attack_add"):
-                hp += getattr(item, "attack_add")  # gettatr to shut up IDE
+                atk += getattr(item, "attack_add")  # gettatr to shut up IDE
 
         # this must run after because multipliers multiply overall hp
         for item in self.equipped.values():
             if item is not None and hasattr(item, "attack_multiply"):
-                hp *= getattr(item, "attack_multiply")
+                atk *= getattr(item, "attack_multiply")
 
-        return hp
+        return atk
 
 
     @property
     def total_speed(self) -> int | float:
-        # this reads all items at runtime and applies buffs
+
         """
         only access speed via this API
         """
-        hp = self.hp
+
+        spd = self.base_speed
         for item in self.equipped.values():
             # we can extract attributes
             if item is not None and hasattr(item, "speed_add"):
-                hp += getattr(item, "speed_add")  # gettatr to shut up IDE
+                spd += getattr(item, "speed_add")  # gettatr to shut up IDE
 
-        # this must run after because multipliers multiply overall hp
         for item in self.equipped.values():
             if item is not None and hasattr(item, "speed_multiply"):
-                hp *= getattr(item, "speed_multiply")
+                spd *= getattr(item, "speed_multiply")
 
-        return hp
+        return spd
         
 
     def equip(self, item: Gear | WeaponOnly | WeaponAndShield | ShieldOnly | TwoHanded | Accessory) -> bool:
@@ -112,6 +118,10 @@ class Player(Entity):
                 if slot in ("one-handed", "one-handed-and-shield", "two-handed", "shield"):
                     self.equipped[slot] = None
         self.equipped[item.slot] = item
+        # sync current stats
+        self.current_hp = self.total_hp
+        self.current_attack = self.total_attack
+        self.current_speed = self.total_speed
         return True
     
 
@@ -125,7 +135,7 @@ class Player(Entity):
         return self.coins
 
 
-    def finish_run(self, run_time: int | float):
+    def eval_runtime(self, run_time: int | float):
         """
         should be called at the end of every run, not just the best one
         """
@@ -134,4 +144,6 @@ class Player(Entity):
         return self.best_run
     
 
-    
+    def die(self, run_time: int | float):
+        self.eval_runtime(run_time)
+        self.floor = 0

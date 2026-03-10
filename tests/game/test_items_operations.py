@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from game_internals.core.gameplay.equipment.items.items_operations import (
+from game_internals.core.gameplay.equipment.items_operations import (
     CATEGORIES,
     pick_rand_item_by_category,
     pick_random_item,
