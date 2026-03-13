@@ -50,3 +50,5 @@ async def translate(text: str, to_language: languages, redis: Redis) -> str:
     await redis.set(cache, result, ex=cache_time)  # in seconds
     logger.info("Text %s cached for %s hours", text, cache_time // 3600)  # in hours
     return result
+
+    # TODO: don't cache anything automatically - only if there are no dynamic values

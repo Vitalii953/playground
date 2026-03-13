@@ -22,6 +22,8 @@ async def warm_cache(collection: list, redis: Redis):
     """
     supported_languages = get_args(languages)
 
+    # TODO: filter by presence of brackets "{}"
+
     tasks = [
         translate(text, lang, redis)
         for text in collection

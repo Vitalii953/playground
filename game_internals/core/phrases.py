@@ -9,8 +9,8 @@ PHRASES = {
         "add_coins": "You found {amount} coins!",
         "floor_up": "You ascend to the next floor.",
         "floor_down": "You fell down a floor!",
-        "poison": "You stepped on a trap and got poisoned!",
+        "summon_enemy": "An enemy stepped ouf of the dark: {enemy}",
+        "poison": "You stepped on a trap and got poisoned! {HP} HP lost",
         "heal": "You found a healing fountain and restored {amount} HP!",
-        "enemy": "An enemy appears: {enemy_name}!",
     },
 }

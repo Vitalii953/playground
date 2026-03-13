@@ -1,11 +1,11 @@
 from redis.asyncio import Redis
 from backend.services.translator.translation_service import translate
 from game_internals.core.gameplay.entities.player import Player
-from game_internals.core.gameplay.entities.enemy import Enemy
 from game_internals.core.gameplay.equipment.items_operations import pick_random_item
 from game_internals.core.phrases import PHRASES
 from game_internals.core.schemas.game_settings import languages
-from random import randint
+from random import randint, choices
+from game_internals.core.gameplay.entities.enemies_list import ALL_ENEMIES
 
 
 async def offer_random_item_event(language: languages, redis: Redis) -> dict:
@@ -86,20 +86,35 @@ async def heal_event(player: Player, language: languages, redis: Redis) -> dict:
 
 
 async def summon_enemy_event(
-    player: Player,
-    enemy: Enemy,
     language: languages,
     redis: Redis,
 ) -> dict:
-    """Trigger an enemy encounter.
-
-    :param enemy: optional key to force a specific opponent
+    """
+    Spawn an enemy
+    requires a second function to initialize combat
     """
 
-    return {"type": "enemy", "value": enemy, "report": None}
+    chosen_key = choices(list(ALL_ENEMIES.keys()), k=1)[0]
+    init_enemy = ALL_ENEMIES[chosen_key]()
+
+    template = PHRASES["events"]["summon_enemy"]
+    formatted = template.format(enemy=init_enemy.name)
+    result = await translate(formatted, language, redis)
+    return {"language": language, "type": "summon_enemy", "value": init_enemy, "report": result}
 
 
 async def poison_event(player: Player, language: languages, redis: Redis) -> dict:
-    """Placeholder stub; real logic will be added later."""
+    """
+    Poison player
+    """
+    hp_lost = 0
+    for _ in range(3):
+        damage_factor = randint(1, 4)
+        player.current_hp = max(0, player.current_hp - damage_factor)
+        hp_lost += damage_factor   
+    
+    template = PHRASES["events"]["poison"]
+    formatted = template.format(HP=hp_lost)
+    result = await translate(formatted, language, redis)
 
-    return {"type": "poison", "value": 0, "report": None}
+    return {"language": language, "type": "poison", "value": hp_lost, "report": result}
