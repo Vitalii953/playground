@@ -138,11 +138,11 @@ class Player(Entity):
     def mount_floor(self, value: int = 1):
         self.floor += value
         return self.floor
-    
+
     def descend_floor(self, value: int = 1):
         self.floor = max(0, self.floor - value)
         return self.floor
-    
+
     def add_coins(self, value: int):
         self.coins += value
         return self.coins

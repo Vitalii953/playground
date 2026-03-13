@@ -38,7 +38,7 @@ async def floor_up_event(player: Player, language: languages, redis: Redis) -> d
     player.mount_floor(1)
 
     template = PHRASES["events"]["floor_up"]
-    result = await translate(template, language, redis)  
+    result = await translate(template, language, redis)
 
     return {"language": language, "type": "floor_up", "report": result}
 
@@ -55,7 +55,12 @@ async def add_coins_event(player: Player, language: languages, redis: Redis) -> 
     formatted = template.format(amount=coin_amount)
     result = await translate(formatted, language, redis)
 
-    return {"language": language, "type": "add_coins", "value": coin_amount, "report": result}
+    return {
+        "language": language,
+        "type": "add_coins",
+        "value": coin_amount,
+        "report": result,
+    }
 
 
 async def floor_down_event(player: Player, language: languages, redis: Redis) -> dict:
@@ -78,29 +83,70 @@ async def heal_event(player: Player, language: languages, redis: Redis) -> dict:
 
     heal_amount = randint(5, 25)
     player.heal_by(heal_amount)
-    
+
     template = PHRASES["events"]["heal"]
     formatted = template.format(amount=heal_amount)
     result = await translate(formatted, language, redis)
-    return {"language": language, "type": "heal", "value": heal_amount, "report": result}
+    return {
+        "language": language,
+        "type": "heal",
+        "value": heal_amount,
+        "report": result,
+    }
 
 
-async def summon_enemy_event(
+async def fight_summoned_enemy_event(
+    player: Player,
     language: languages,
     redis: Redis,
 ) -> dict:
     """
-    Spawn an enemy
-    requires a second function to initialize combat
+    Spawn and fight an enemy
+    Handles the combat too to avoid inconsistencies and return the result to the frontend
+    Game loop should handle finishing the loop if player is dead
     """
 
     chosen_key = choices(list(ALL_ENEMIES.keys()), k=1)[0]
-    init_enemy = ALL_ENEMIES[chosen_key]()
+    enemy = ALL_ENEMIES[chosen_key]()
 
-    template = PHRASES["events"]["summon_enemy"]
-    formatted = template.format(enemy=init_enemy.name)
-    result = await translate(formatted, language, redis)
-    return {"language": language, "type": "summon_enemy", "value": init_enemy, "report": result}
+    report = []
+    
+    template = await translate(PHRASES["events"]["summon_enemy"], language, redis)
+    hit_enemy_template = await translate(PHRASES["game_loop"]["hit_enemy"], language, redis)
+    hit_player_template = await translate(PHRASES["game_loop"]["hit_player"], language, redis)
+
+
+    # fight enemy
+    while enemy.is_alive() and player.is_alive():
+        # player hits first
+        hit_enemy = player.attack_(enemy)
+        report.append(f"{hit_enemy_template}{hit_enemy}\n")
+        # enemy hits second
+        if enemy.is_alive():
+            hit_player = enemy.attack_(player)
+            report.append(f"{hit_player_template}{hit_player}\n")
+    # loop ended - someone is dead
+    if not player.is_alive():
+        player_survived = False
+        template = PHRASES["game_loop"]["player_dead"]
+        result = await translate(template, language, redis)
+    elif not enemy.is_alive():
+        player_survived = True
+
+        coins_loot = enemy.die()
+        player.add_coins(coins_loot)
+
+        template = PHRASES["game_loop"]["enemy_dead"]
+        result = await translate(template, language, redis)
+
+    return {
+        "language": language,
+        "type": "summon_enemy",
+        "value": vars(enemy),
+        "report": report,
+        "player_state": player_survived,
+        "result": result,
+    }
 
 
 async def poison_event(player: Player, language: languages, redis: Redis) -> dict:
@@ -111,8 +157,8 @@ async def poison_event(player: Player, language: languages, redis: Redis) -> dic
     for _ in range(3):
         damage_factor = randint(1, 4)
         player.current_hp = max(0, player.current_hp - damage_factor)
-        hp_lost += damage_factor   
-    
+        hp_lost += damage_factor
+
     template = PHRASES["events"]["poison"]
     formatted = template.format(HP=hp_lost)
     result = await translate(formatted, language, redis)

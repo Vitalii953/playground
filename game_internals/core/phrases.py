@@ -13,4 +13,10 @@ PHRASES = {
         "poison": "You stepped on a trap and got poisoned! {HP} HP lost",
         "heal": "You found a healing fountain and restored {amount} HP!",
     },
+    "game_loop": {
+        "player_dead": "You died! Better luck next time",
+        "enemy_dead": "You survived! Enemy is dead",
+        "hit_enemy": "You hit the enemy, they lost ",  # the phrase is naturally continued
+        "hit_player": "The enemy hit you, you lost ",  # the phrase is naturally continued
+    },
 }

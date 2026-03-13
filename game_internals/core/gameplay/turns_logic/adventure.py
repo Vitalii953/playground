@@ -3,19 +3,27 @@ from game_internals.core.gameplay.entities.enemy import Enemy
 from game_internals.core.gameplay.entities.player import Player
 
 
-def take_turn(player: Player, enemy: Enemy) -> dict:
+def encounter_enemy():
+    """
+    Complement for summon_enemy_event()
+    This initializes combat with the enemy
+    """
+    enemy = summon_enemy_event()
+
+
+def take_turn(player: Player, enemy: Enemy) -> list:
     """
     Executes only 1 turn, doesn't handle everything
     """
 
     report = []
     if player.is_alive() and enemy.is_alive():
-        player_hit = player.attack_target(enemy)
+        player_hit = player.attack_(enemy)
         report.append(player_hit)
         if enemy.is_alive():
-            enemy_hit = enemy.attack_target(player)
+            enemy_hit = enemy.attack_(player)
             report.append(enemy_hit)
-    return {"player HP": player.hp, "enemy HP": enemy.hp, "report": report}
+    return report
 
 
 def flee(player: Player, enemy: Enemy) -> dict:
