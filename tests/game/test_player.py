@@ -171,7 +171,7 @@ def test_attack_reduces_target_hp(monkeypatch, player: Player):
 
 def test_die_resets_floor_and_records_run(player: Player):
     player.floor = 5
-    result = player.die(123.4)
+    player.die(123.4)
     # die returns nothing; effect is side‑effects
     assert player.floor == 0
     assert player.best_run == 123.4

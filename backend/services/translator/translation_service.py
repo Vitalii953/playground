@@ -23,6 +23,9 @@ async def translate(text: str, to_language: languages, redis: Redis) -> str:
     this ALWAYS translates from English since the app assumes it as the default language.
     therefore, this function is also tailored to translate from english only
     """
+    if to_language == "en":
+        return text
+
     cache = f"translation:{to_language}:{hash(text)}"  # acts as key:value because it is
 
     cached = await redis.get(cache)

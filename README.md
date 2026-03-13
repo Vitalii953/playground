@@ -22,3 +22,4 @@ app/
 # current progress: game WIP. translator finished, all tests pass.
 # also, game MANAGES DATA SOLO. API has nothing to do with it. SoC must be respected!
 # i decided to abstract away slots and other metadata - they shouldn't figure in phrases.py
+# TRANSLATION LAYER: at launch for every user, depending on language, the phrases are either being all translated or not.
