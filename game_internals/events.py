@@ -164,3 +164,15 @@ async def poison_event(player: Player, language: languages, redis: Redis) -> dic
     result = await translate(formatted, language, redis)
 
     return {"language": language, "type": "poison", "value": hp_lost, "report": result}
+
+
+# mapping for turn logic
+ALL_EVENTS = {
+    "offer_random_item": offer_random_item_event,
+    "floor_up": floor_up_event,
+    "add_coins": add_coins_event,
+    "floor_down": floor_down_event,
+    "heal": heal_event,
+    "fight_summoned_enemy": fight_summoned_enemy_event,
+    "poison": poison_event,
+}

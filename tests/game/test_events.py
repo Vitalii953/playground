@@ -98,20 +98,49 @@ async def test_poison_event_reduces_hp_and_reports(monkeypatch, player, mock_red
 
 
 @pytest.mark.asyncio
-async def test_summon_enemy_event_chooses_enemy_and_translates(monkeypatch, mock_redis):
+async def test_fight_summoned_enemy_event_player_wins(monkeypatch, player, mock_redis):
     class DummyEnemy:
-        name = "Goblin"
+        def __init__(self):
+            self.name = "Goblin"
+            self.current_hp = 1
+
+        def is_alive(self):
+            return self.current_hp > 0
+
+        def attack_(self, target):
+            # should not be called in this test; safe no-op
+            return 0
+
+        def die(self):
+            return 5
 
     monkeypatch.setattr(events, "ALL_ENEMIES", {"goblin": DummyEnemy})
     monkeypatch.setattr(events, "choices", lambda seq, k: ["goblin"])
 
-    translate_mock = AsyncMock(return_value="enemy appeared")
+    # player will always kill the enemy in one hit
+    def _attack_once(target):
+        target.current_hp = 0
+        return 2
+
+    monkeypatch.setattr(player, "attack_", _attack_once)
+
+    translate_mock = AsyncMock(
+        side_effect=[
+            "spawned",
+            "hit_enemy",
+            "hit_player",
+            "enemy_dead",
+        ]
+    )
     monkeypatch.setattr(events, "translate", translate_mock)
 
-    result = await events.summon_enemy_event("en", mock_redis)
+    result = await events.fight_summoned_enemy_event(player, "en", mock_redis)
 
     assert result["type"] == "summon_enemy"
-    assert isinstance(result["value"], DummyEnemy)
-    assert result["report"] == "enemy appeared"
+    assert result["player_state"] is True
+    assert player.coins == 5
+    assert result["result"] == "enemy_dead"
+    # should include the hit report
+    assert any("hit_enemy" in line for line in result["report"])
 
-    translate_mock.assert_awaited_once()
+    assert translate_mock.await_count == 4

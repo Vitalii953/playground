@@ -21,3 +21,6 @@ class GameSettings(BaseModel):
         if self.current_language not in self.available_languages:
             raise ValueError(f"{self.current_language} is an invalid language")
         return self
+
+    def get_language(self) -> languages:
+        return self.current_language

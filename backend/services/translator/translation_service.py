@@ -4,7 +4,6 @@ this is another low-level module. I will be calling it just once during initiali
 
 import httpx  # type: ignore
 from backend.services.translator.config import get_settings
-from game_internals.core.schemas.game_settings import languages
 from redis.asyncio import Redis
 import logging
 
@@ -18,11 +17,13 @@ email = settings.personal_email
 cache_time = settings.cache_time
 
 
-async def translate(text: str, to_language: languages, redis: Redis) -> str:
+async def translate(text: str, to_language: str, redis: Redis) -> str:
     """
     this ALWAYS translates from English since the app assumes it as the default language.
     therefore, this function is also tailored to translate from english only
+    DOES NOT CACHE ANYTHING - warm_cache handles this
     """
+    
     if to_language == "en":
         return text
 
@@ -47,8 +48,4 @@ async def translate(text: str, to_language: languages, redis: Redis) -> str:
 
     result = r.json()["responseData"]["translatedText"]
 
-    await redis.set(cache, result, ex=cache_time)  # in seconds
-    logger.info("Text %s cached for %s hours", text, cache_time // 3600)  # in hours
     return result
-
-    # TODO: don't cache anything automatically - only if there are no dynamic values

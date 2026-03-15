@@ -62,9 +62,9 @@ async def test_translate_cache_key_includes_language_and_text(
         await translate("Hello", "fr", mock_redis)
         await translate("Hello", "fr", mock_redis)
 
-    # same text + language = same cache key = set called twice with same key
-    first_key = mock_redis.set.call_args_list[0][0][0]
-    second_key = mock_redis.set.call_args_list[1][0][0]
+    # same text + language = same cache key = get called twice with same key
+    first_key = mock_redis.get.call_args_list[0][0][0]
+    second_key = mock_redis.get.call_args_list[1][0][0]
     assert first_key == second_key
     assert "fr" in first_key
 
