@@ -2,9 +2,10 @@
 this is another low-level module. I will be calling it just once during initialization ig
 """
 
-import httpx  # type: ignore
+import httpx
 from backend.services.translator.config import get_settings
 from redis.asyncio import Redis
+from game_internals.core.schemas.game_settings import languages
 import logging
 
 
@@ -17,7 +18,7 @@ email = settings.personal_email
 cache_time = settings.cache_time
 
 
-async def translate(text: str, to_language: str, redis: Redis) -> str:
+async def translate(text: str, to_language: languages, redis: Redis) -> str:
     """
     this ALWAYS translates from English since the app assumes it as the default language.
     therefore, this function is also tailored to translate from english only

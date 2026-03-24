@@ -45,6 +45,7 @@ async def test_translate_cache_miss_calls_api(mock_redis, mock_mymemory_api_resp
         result = await translate("Hello world", "fr", mock_redis)
 
     assert result == "Bonjour le monde"
+    mock_redis.set.assert_not_called()
 
 
 @pytest.mark.asyncio

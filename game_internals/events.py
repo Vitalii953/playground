@@ -1,3 +1,10 @@
+"""
+turn logic handles floor escalation, so floor up and down events do not take 
+this into account. phrases.py explain it better, 
+but basically, if you go up, you go up twice, and if you go down, 
+you fall down but then recover and find another way up
+"""
+
 from redis.asyncio import Redis
 from backend.services.translator.translation_service import translate
 from game_internals.core.gameplay.entities.player import Player

@@ -11,7 +11,6 @@ from typing import get_args
 import logging
 import asyncio
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +36,7 @@ async def warm_cache(texts: dict, redis: Redis):
 
     cacheable_texts = get_cacheable(texts)
     cacheable_keys = list(cacheable_texts.keys())
-    async def _translate_and_cache(key: str, text: str, lang: str) -> None:
+    async def _translate_and_cache(key: str, text: str, lang: languages) -> None:
         """Translate the text and store it in Redis under the translation key."""
 
         try:

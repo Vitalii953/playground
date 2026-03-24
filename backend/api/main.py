@@ -1,13 +1,16 @@
-from contextlib import asynccontextmanager
+import asyncio
 import logging
-from fastapi import FastAPI, Depends
+from contextlib import asynccontextmanager
+from game_internals.core.schemas.game_settings import languages
+import aio_pika
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-import aio_pika
-from app.core.config import settings
-from app.core.database import get_db
-from app.core.database import engine
 
+from backend.core.config import settings
+from backend.core.database import engine, get_db
+from backend.core.redis import get_redis
+from backend.services.translator.translation_service import translate
 
 logger = logging.getLogger(__name__)
 
@@ -17,20 +20,31 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown logic."""
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     logger.info("App startup")
-    
-    try:
-        # Startup: connect to RabbitMQ only if a queue name is configured.
-        app.state.mq_connection = await aio_pika.connect_robust(str(settings.rabbitmq_url))
-        app.state.mq_channel = await app.state.mq_connection.channel()
-        # make sure the queue name matches whatever workers expect
-        await app.state.mq_channel.declare_queue(settings.task_queue, durable=True)
-        logger.info("RabbitMQ connected")
-    except Exception as e:
-        logger.error(f"Failed to connect to RabbitMQ: {e}", exc_info=True)
-        raise
+
+    # RabbitMQ may not be ready the instant this container starts.
+    # Retry a few times before failing hard.
+    attempts = 0
+    while attempts < 10:
+        try:
+            app.state.mq_connection = await aio_pika.connect_robust(
+                str(settings.rabbitmq_url)
+            )
+            break
+        except Exception as exc:
+            attempts += 1
+            logger.warning(
+                "RabbitMQ connection failed (attempt %d/10): %s", attempts, exc
+            )
+            await asyncio.sleep(1)
+    else:
+        raise RuntimeError("RabbitMQ unavailable after 10 attempts")
+
+    app.state.mq_channel = await app.state.mq_connection.channel()
+    await app.state.mq_channel.declare_queue(settings.task_queue, durable=True)
+    logger.info("RabbitMQ connected")
 
     yield
 
@@ -43,55 +57,48 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
+class ItemPayload(BaseModel):
+    name: str
+    payload: dict | None = None
+
+
 @app.get("/health")
 async def health_check(db: AsyncSession = Depends(get_db)):
     """Check all service dependencies."""
     checks = {}
-    
+
+    from sqlalchemy import text
+
     try:
         await db.execute(text("SELECT 1"))
         checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = f"error: {e}"
+
+    return checks
 
 
+@app.get("/translate")
+async def api_translate(text: str, to_language: languages = "en"):
+    """Translate text from English to the target language using Redis cache."""
 
-@app.post("/items", response_model=dict)
-async def create_item(item: ItemCreate):
-    """Enqueue an item for processing."""
     try:
-        logger.info(f"Enqueueing item: {item.name}")
-        message = aio_pika.Message(body=item.model_dump_json().encode("utf-8"))
-        await app.state.mq_channel.default_exchange.publish(
-            message, routing_key=settings.task_queue
-        )
-        logger.info(f"Item {item.name} queued")
-        return {"status": "queued", "item": item}
-        
-    except aio_pika.AMQPException as e:
-        logger.error(f"RabbitMQ error: {e}")
-        raise HTTPException(status_code=503, detail="Message broker unavailable")
+        redis_client = await get_redis()
+        result = await translate(text, to_language, redis_client)
+        await redis_client.close()
+        return {"text": text, "to_language": to_language, "translated": result}
     except Exception as e:
         logger.error(f"Unexpected error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
-    
 
 
 @app.post("/items")
 async def create_item(item: ItemPayload):
-    """enqueue a simple item on the RabbitMQ queue.
+    """Enqueue an item on the RabbitMQ queue."""
 
-    The payload is JSON-encoded and sent to the ``task_queue`` so that
-    the separate worker process can consume it.
-    """
-
-    # publish using the default exchange and routing key equal to queue name
-    # pydantic 2 uses `model_dump_json` instead of `json` (see migration
-    # warnings); the payload is a plain string that we send to the broker.
     message = aio_pika.Message(body=item.model_dump_json().encode("utf-8"))
     await app.state.mq_channel.default_exchange.publish(
         message, routing_key=settings.task_queue
     )
 
-    # echo back for quick verification
     return {"status": "queued", "item": item}
-
-
