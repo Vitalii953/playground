@@ -11,6 +11,8 @@ from backend.core.config import settings
 from backend.core.database import engine, get_db
 from backend.core.redis import get_redis
 from backend.services.translator.translation_service import translate
+from backend.services.auto_save import auto_save_stale_sessions
+from backend.api.routes.v1 import game
 
 logger = logging.getLogger(__name__)
 
@@ -46,15 +48,33 @@ async def lifespan(app: FastAPI):
     await app.state.mq_channel.declare_queue(settings.task_queue, durable=True)
     logger.info("RabbitMQ connected")
 
+    # Start auto-save background task
+    shutdown_event = asyncio.Event()
+    redis = await get_redis()
+    auto_save_task = asyncio.create_task(
+        auto_save_stale_sessions(redis, get_db, shutdown_event)
+    )
+    logger.info("Auto-save task started")
+
     yield
 
     # Shutdown: Clean up
     logger.info("App shutdown")
+    shutdown_event.set()
+    try:
+        await asyncio.wait_for(auto_save_task, timeout=10.0)
+    except asyncio.TimeoutError:
+        logger.warning("Auto-save task did not complete in time, cancelling")
+        auto_save_task.cancel()
     await app.state.mq_connection.close()
+    await redis.close()
     await engine.dispose()
 
 
 app = FastAPI(lifespan=lifespan)
+
+# Include game routes
+app.include_router(game.router)
 
 
 class ItemPayload(BaseModel):

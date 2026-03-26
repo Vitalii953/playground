@@ -34,3 +34,4 @@ class Player(Base):
     ]  # everyone starts at 0
 
     preferences: Mapped[Annotated[dict, mapped_column(JSONB, default=dict)]]
+    equipment: Mapped[Annotated[dict, mapped_column(JSONB, default=dict)]]
