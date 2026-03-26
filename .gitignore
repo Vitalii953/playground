@@ -26,3 +26,10 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Other
+USAGE.md
+CLAUDE.md
+FRONTEND_ARCHITECTURE.md
+BACKEND_IMPLEMENTATION.md
+.claude/*
