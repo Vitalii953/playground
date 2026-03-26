@@ -149,6 +149,8 @@ async def start_game(
     """Start a new game session"""
     backend_events = []
 
+    # TODO: handle first run ever (where player isn't in DB) - currently it will just 404
+
     try:
         # Load player from DB
         db_start = time.time()

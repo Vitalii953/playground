@@ -4,11 +4,13 @@ Tests the full game flow without polluting the main database
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from uuid import uuid4
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+import os
+
 
 from backend.api.main import app
 from backend.models.players import Base, Player as DBPlayer
@@ -16,12 +18,15 @@ from backend.core.database import get_db
 from backend.core.redis import get_redis
 
 
-# Test database URL (use a separate test database)
-# Using localhost with default postgres credentials
-TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost/test_dungeon_crawler"
+# Test database URL (use env vars + container service host by default)
+# In Docker Compose, Postgres is reachable at host `db`.
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    f"postgresql+asyncpg://{os.getenv('POSTGRES_USER', 'postgres')}:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@{os.getenv('POSTGRES_HOST', 'db')}:5432/{os.getenv('POSTGRES_DB', 'sandbox_db')}"
+)
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")  # type: ignore
 def event_loop():
     """Create event loop for async tests"""
     loop = asyncio.get_event_loop_policy().new_event_loop()
@@ -29,7 +34,7 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 async def test_engine():
     """Create test database engine"""
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
@@ -47,10 +52,10 @@ async def test_engine():
     await engine.dispose()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_db_session(test_engine):
     """Create test database session"""
-    async_session = sessionmaker(
+    async_session = async_sessionmaker(
         test_engine, class_=AsyncSession, expire_on_commit=False
     )
 
@@ -58,7 +63,7 @@ async def test_db_session(test_engine):
         yield session
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_redis():
     """Get Redis client for tests"""
     redis = await get_redis()
@@ -80,7 +85,7 @@ async def test_redis():
     await redis.close()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_player(test_db_session):
     """Create a test player in the database"""
     player = DBPlayer(
@@ -98,7 +103,7 @@ async def test_player(test_db_session):
     return player
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(test_db_session, test_redis):
     """Create test HTTP client with dependency overrides"""
 
@@ -111,7 +116,7 @@ async def client(test_db_session, test_redis):
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_redis] = override_get_redis
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
     app.dependency_overrides.clear()
