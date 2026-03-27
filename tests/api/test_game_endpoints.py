@@ -93,7 +93,7 @@ async def test_player(test_db_session):
         gold=100,
         keys=0,
         current_floor=0,
-        preferences={},
+        preferences={"language": "en"},
         equipment={}
     )
     test_db_session.add(player)
@@ -101,6 +101,17 @@ async def test_player(test_db_session):
     await test_db_session.refresh(player)
 
     return player
+
+
+async def create_test_player(client, language: str = "en"):
+    """Helper to create a player via API endpoint"""
+    response = await client.post(
+        "/api/v1/game/create-player",
+        json={"language": language}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    return data["player_id"]
 
 
 @pytest_asyncio.fixture
@@ -123,6 +134,40 @@ async def client(test_db_session, test_redis):
 
 
 # Tests
+@pytest.mark.asyncio
+async def test_create_player(client):
+    """Test creating a new player"""
+    response = await client.post(
+        "/api/v1/game/create-player",
+        json={"language": "en"}
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "player_id" in data
+    assert "message" in data
+    assert data["message"] == "Player created successfully"
+    assert "backend_events" in data
+
+    # Verify backend events
+    events = data["backend_events"]
+    assert any(e["type"] == "db_write" for e in events)
+
+
+@pytest.mark.asyncio
+async def test_create_player_with_language(client):
+    """Test creating a player with specific language preference"""
+    response = await client.post(
+        "/api/v1/game/create-player",
+        json={"language": "es"}
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "player_id" in data
+
+
 @pytest.mark.asyncio
 async def test_start_game(client, test_player):
     """Test starting a new game session"""
@@ -331,6 +376,23 @@ async def test_invalid_session(client):
 
 
 @pytest.mark.asyncio
+async def test_start_without_player(client):
+    """Test that starting game without creating player first fails"""
+    fake_player_id = str(uuid4())
+    response = await client.post(
+        "/api/v1/game/start",
+        json={
+            "player_id": fake_player_id,
+            "language": "en"
+        }
+    )
+
+    assert response.status_code == 404
+    assert "Player not found" in response.json()["detail"]
+    assert "create-player" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
 async def test_full_game_flow(client, test_player):
     """Test complete game flow from start to end"""
     # 1. Start game
@@ -385,3 +447,47 @@ async def test_full_game_flow(client, test_player):
         json={"session_token": session_token}
     )
     assert resume_after_end.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_full_flow_with_create_player(client):
+    """Test complete flow starting with player creation"""
+    # 1. Create player
+    player_id = await create_test_player(client, language="en")
+
+    # 2. Start game
+    start_response = await client.post(
+        "/api/v1/game/start",
+        json={"player_id": player_id, "language": "en"}
+    )
+    assert start_response.status_code == 200
+    session_token = start_response.json()["session_token"]
+
+    # 3. Play a few turns
+    for _ in range(5):
+        turn_response = await client.post(
+            "/api/v1/game/turn",
+            json={"session_token": session_token, "language": "en"}
+        )
+        assert turn_response.status_code == 200
+
+        event = turn_response.json()["event"]
+        if event and event.get("needs_input"):
+            await client.post(
+                "/api/v1/game/resolve",
+                json={
+                    "session_token": session_token,
+                    "language": "en",
+                    "event_type": event["type"],
+                    "event_value": event["value"],
+                    "decision": "equip"
+                }
+            )
+
+    # 4. End game
+    end_response = await client.post(
+        "/api/v1/game/end",
+        json={"session_token": session_token}
+    )
+    assert end_response.status_code == 200
+

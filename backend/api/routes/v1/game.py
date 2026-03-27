@@ -39,6 +39,17 @@ router = APIRouter(prefix="/api/v1/game", tags=["game"])
 
 
 # Request/Response schemas
+class CreatePlayerRequest(BaseModel):
+    name: str | None = None
+    language: languages = "en"
+
+
+class CreatePlayerResponse(BaseModel):
+    player_id: UUID
+    message: str
+    backend_events: list[BackendEvent]
+
+
 class StartGameRequest(BaseModel):
     player_id: UUID
     language: languages
@@ -140,6 +151,47 @@ def create_backend_event(event_type: str, message: str, duration_ms: float | Non
 
 
 # Routes
+@router.post("/create-player", response_model=CreatePlayerResponse)
+async def create_player(
+    request: CreatePlayerRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new player in the database"""
+    backend_events = []
+
+    try:
+        # Create new player
+        db_start = time.time()
+        new_player = DBPlayer(
+            gold=0,
+            keys=0,
+            current_floor=0,
+            preferences={"language": request.language},
+            equipment={}
+        )
+        db.add(new_player)
+        await db.commit()
+        await db.refresh(new_player)
+
+        backend_events.append(
+            create_backend_event(
+                "db_write",
+                "Created new player in database",
+                round((time.time() - db_start) * 1000, 2),
+            )
+        )
+
+        return CreatePlayerResponse(
+            player_id=new_player.id,
+            message="Player created successfully",
+            backend_events=backend_events,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in create_player: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/start", response_model=StartGameResponse)
 async def start_game(
     request: StartGameRequest,
@@ -148,8 +200,6 @@ async def start_game(
 ):
     """Start a new game session"""
     backend_events = []
-
-    # TODO: handle first run ever (where player isn't in DB) - currently it will just 404
 
     try:
         # Load player from DB
@@ -160,7 +210,7 @@ async def start_game(
         db_player = result.scalar_one_or_none()
 
         if not db_player:
-            raise HTTPException(status_code=404, detail="Player not found")
+            raise HTTPException(status_code=404, detail="Player not found. Call /create-player first.")
 
         backend_events.append(
             create_backend_event(
