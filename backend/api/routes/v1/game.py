@@ -6,27 +6,28 @@ Thin route handlers that delegate to service layer
 import logging
 import time
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.database import get_db
 from backend.core.redis import get_redis
 from backend.models.players import Player as DBPlayer
-from backend.services.player_cache import (
-    get_cached_player,
-    cache_player,
-    clear_cached_player,
-)
+from backend.services.auto_save import save_player_to_db
 from backend.services.game_session import (
     create_session,
+    delete_session,
     get_session,
     update_session_activity,
-    delete_session,
 )
-from backend.services.auto_save import save_player_to_db
+from backend.services.player_cache import (
+    cache_player,
+    clear_cached_player,
+    get_cached_player,
+)
 from game_internals.core.gameplay.entities.player import Player as GamePlayer
 from game_internals.core.gameplay.turns_logic.helper_loops import (
     go_one_step,
@@ -47,7 +48,7 @@ class CreatePlayerRequest(BaseModel):
 class CreatePlayerResponse(BaseModel):
     player_id: UUID
     message: str
-    backend_events: list[BackendEvent]
+    backend_events: list["BackendEvent"]
 
 
 class StartGameRequest(BaseModel):
@@ -140,7 +141,9 @@ def game_player_to_state(player: GamePlayer) -> PlayerStateResponse:
     )
 
 
-def create_backend_event(event_type: str, message: str, duration_ms: float | None = None) -> BackendEvent:
+def create_backend_event(
+    event_type: str, message: str, duration_ms: float | None = None
+) -> BackendEvent:
     """Helper to create backend event with timestamp"""
     return BackendEvent(
         type=event_type,
@@ -167,7 +170,7 @@ async def create_player(
             keys=0,
             current_floor=0,
             preferences={"language": request.language},
-            equipment={}
+            equipment={},
         )
         db.add(new_player)
         await db.commit()
@@ -210,7 +213,9 @@ async def start_game(
         db_player = result.scalar_one_or_none()
 
         if not db_player:
-            raise HTTPException(status_code=404, detail="Player not found. Call /create-player first.")
+            raise HTTPException(
+                status_code=404, detail="Player not found. Call /create-player first."
+            )
 
         backend_events.append(
             create_backend_event(
@@ -243,7 +248,9 @@ async def start_game(
 
         # Create session
         session_token = await create_session(request.player_id, redis)
-        backend_events.append(create_backend_event("session_create", "Game session created", 0.5))
+        backend_events.append(
+            create_backend_event("session_create", "Game session created", 0.5)
+        )
 
         return StartGameResponse(
             session_token=session_token,
@@ -281,7 +288,7 @@ async def game_turn(
         if not game_player:
             raise HTTPException(
                 status_code=404,
-                detail="Player not found in cache. Session may have expired."
+                detail="Player not found in cache. Session may have expired.",
             )
 
         backend_events.append(
@@ -296,7 +303,7 @@ async def game_turn(
         event_start = time.time()
         event_result = await go_one_step(game_player, request.language, redis)
 
-        event_type = event_result.get('type', 'unknown') if event_result else 'none'
+        event_type = event_result.get("type", "unknown") if event_result else "none"
         backend_events.append(
             create_backend_event(
                 "event_trigger",
@@ -494,7 +501,7 @@ async def resume_game(
         if not session:
             raise HTTPException(
                 status_code=404,
-                detail="Session not found or expired. Please start a new game."
+                detail="Session not found or expired. Please start a new game.",
             )
 
         player_id = UUID(session["player_id"])
@@ -505,8 +512,7 @@ async def resume_game(
 
         if not game_player:
             raise HTTPException(
-                status_code=404,
-                detail="Player cache expired. Please start a new game."
+                status_code=404, detail="Player cache expired. Please start a new game."
             )
 
         backend_events.append(
@@ -521,7 +527,9 @@ async def resume_game(
         session_info = {
             "turn_count": session.get("turn_count", 0),
             "started_at": session.get("started_at"),
-            "idle_time_seconds": round(time.time() - session.get("last_turn_at", time.time())),
+            "idle_time_seconds": round(
+                time.time() - session.get("last_turn_at", time.time())
+            ),
         }
 
         return ResumeResponse(
