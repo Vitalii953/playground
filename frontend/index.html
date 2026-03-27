@@ -152,14 +152,7 @@
                 <label for="language">Choose Your Language:</label>
                 <select id="language" name="language" required>
                     <option value="en">English</option>
-                    <option value="es">Español</option>
                     <option value="fr">Français</option>
-                    <option value="de">Deutsch</option>
-                    <option value="it">Italiano</option>
-                    <option value="pt">Português</option>
-                    <option value="ru">Русский</option>
-                    <option value="ja">日本語</option>
-                    <option value="zh">中文</option>
                 </select>
             </div>
 
@@ -176,9 +169,8 @@
     </div>
 
     <script>
-        const API_URL = window.location.hostname === 'localhost'
-            ? 'http://localhost:8000'
-            : 'http://backend:8000';
+        // Frontend runs in browser, so always use localhost
+        const API_URL = 'http://localhost:8000';
 
         const form = document.getElementById('startForm');
         const startBtn = document.getElementById('startBtn');
