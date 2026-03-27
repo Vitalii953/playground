@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Crawler - Start</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #0f1419;
+            --text-primary: #00ff41;
+            --text-secondary: #00cc33;
+            --text-dim: #008822;
+            --border: #00ff4133;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            border: 2px solid var(--border);
+            padding: 40px;
+            background: var(--bg-secondary);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 0 0 10px var(--text-primary);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-dim);
+            margin-bottom: 40px;
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border);
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--text-primary);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: transparent;
+            border: 2px solid var(--text-primary);
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            box-shadow: 0 0 20px var(--text-primary);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--text-dim);
+            margin-top: 20px;
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px solid #ff0000;
+            padding: 15px;
+            margin-top: 20px;
+            color: #ff6b6b;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            animation: scanline 8s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+    <div class="container">
+        <h1>⚔️ DUNGEON CRAWLER</h1>
+        <p class="subtitle">Backend Architecture Demo</p>
+
+        <form id="startForm">
+            <div class="form-group">
+                <label for="language">Choose Your Language:</label>
+                <select id="language" name="language" required>
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                    <option value="it">Italiano</option>
+                    <option value="pt">Português</option>
+                    <option value="ru">Русский</option>
+                    <option value="ja">日本語</option>
+                    <option value="zh">中文</option>
+                </select>
+            </div>
+
+            <button type="submit" id="startBtn">
+                > Start Adventure
+            </button>
+        </form>
+
+        <div id="loading" class="loading" style="display: none;">
+            Initializing game session...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:8000'
+            : 'http://backend:8000';
+
+        const form = document.getElementById('startForm');
+        const startBtn = document.getElementById('startBtn');
+        const loading = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const language = document.getElementById('language').value;
+
+            // Disable form
+            startBtn.disabled = true;
+            loading.style.display = 'block';
+            errorDiv.style.display = 'none';
+
+            try {
+                // Step 1: Create player
+                const createResponse = await fetch(`${API_URL}/api/v1/game/create-player`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ language })
+                });
+
+                if (!createResponse.ok) {
+                    throw new Error('Failed to create player');
+                }
+
+                const createData = await createResponse.json();
+                const playerId = createData.player_id;
+
+                // Step 2: Start game
+                const startResponse = await fetch(`${API_URL}/api/v1/game/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        language: language
+                    })
+                });
+
+                if (!startResponse.ok) {
+                    throw new Error('Failed to start game');
+                }
+
+                const startData = await startResponse.json();
+
+                // Store session data
+                sessionStorage.setItem('sessionToken', startData.session_token);
+                sessionStorage.setItem('playerId', playerId);
+                sessionStorage.setItem('language', language);
+
+                // Redirect to game page
+                window.location.href = 'game.html';
+
+            } catch (error) {
+                console.error('Error:', error);
+                errorDiv.textContent = `Error: ${error.message}. Make sure the backend is running.`;
+                errorDiv.style.display = 'block';
+                startBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

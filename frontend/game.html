@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Crawler - Game</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #0f1419;
+            --text-primary: #00ff41;
+            --text-secondary: #00cc33;
+            --text-dim: #008822;
+            --border: #00ff4133;
+            --blue: #4a9eff;
+            --amber: #ffb454;
+            --red: #ff6b6b;
+            --purple: #b794f4;
+            --cyan: #4fd1c5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            text-shadow: 0 0 10px var(--text-primary);
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            padding: 20px;
+            min-height: 600px;
+        }
+
+        .panel h2 {
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+            font-size: 1.2em;
+        }
+
+        .game-window {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .event-display {
+            flex: 1;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            min-height: 300px;
+            overflow-y: auto;
+        }
+
+        .event-text {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .combat-log {
+            color: var(--amber);
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: 2px solid var(--text-primary);
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            box-shadow: 0 0 15px var(--text-primary);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-reject {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .btn-reject:hover:not(:disabled) {
+            background: var(--red);
+            color: var(--bg-primary);
+        }
+
+        .backend-feed {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feed-scroll {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 550px;
+        }
+
+        .feed-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-left: 3px solid;
+            background: var(--bg-primary);
+            font-size: 0.85em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feed-item.db_read,
+        .feed-item.db_write { border-color: var(--blue); color: var(--blue); }
+        .feed-item.cache_hit { border-color: var(--text-primary); color: var(--text-primary); }
+        .feed-item.cache_write { border-color: var(--text-secondary); color: var(--text-secondary); }
+        .feed-item.cache_miss { border-color: var(--amber); color: var(--amber); }
+        .feed-item.event_trigger { border-color: var(--purple); color: var(--purple); }
+        .feed-item.session_create,
+        .feed-item.session_end { border-color: var(--cyan); color: var(--cyan); }
+        .feed-item.player_death { border-color: var(--red); color: var(--red); }
+
+        .duration {
+            color: var(--text-dim);
+            font-size: 0.9em;
+        }
+
+        .item-preview {
+            background: var(--bg-primary);
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px solid var(--text-secondary);
+        }
+
+        .item-preview h3 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .item-stats {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--text-dim);
+            padding: 20px;
+        }
+
+        .game-over {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .game-over h2 {
+            color: var(--red);
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚔️ DUNGEON CRAWLER</h1>
+        <div class="stats-bar">
+            <span>Floor: <strong id="floor">0</strong></span>
+            <span>HP: <strong id="hp">100</strong>/<strong id="maxHp">100</strong></span>
+            <span>ATK: <strong id="attack">10</strong></span>
+            <span>SPD: <strong id="speed">10</strong></span>
+            <span>Coins: <strong id="coins">0</strong></span>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="panel game-window">
+            <h2>Game Window</h2>
+            <div class="event-display" id="eventDisplay">
+                <div class="loading">Loading game...</div>
+            </div>
+            <div id="actionButtons"></div>
+        </div>
+
+        <div class="panel backend-feed">
+            <h2>Backend Activity</h2>
+            <div class="feed-scroll" id="feedScroll"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:8000'
+            : 'http://backend:8000';
+
+        let sessionToken = sessionStorage.getItem('sessionToken');
+        let language = sessionStorage.getItem('language') || 'en';
+        let isProcessing = false;
+        let gameOver = false;
+
+        if (!sessionToken) {
+            window.location.href = 'index.html';
+        }
+
+        function updateStats(playerState) {
+            document.getElementById('floor').textContent = playerState.floor;
+            document.getElementById('hp').textContent = Math.round(playerState.hp);
+            document.getElementById('maxHp').textContent = Math.round(playerState.max_hp);
+            document.getElementById('attack').textContent = Math.round(playerState.attack);
+            document.getElementById('speed').textContent = Math.round(playerState.speed);
+            document.getElementById('coins').textContent = playerState.coins;
+        }
+
+        function addBackendEvents(events) {
+            const feedScroll = document.getElementById('feedScroll');
+            events.forEach(event => {
+                const item = document.createElement('div');
+                item.className = `feed-item ${event.type}`;
+
+                const message = document.createElement('span');
+                message.textContent = event.message;
+
+                const duration = document.createElement('span');
+                duration.className = 'duration';
+                duration.textContent = event.duration_ms ? `${event.duration_ms}ms` : '';
+
+                item.appendChild(message);
+                item.appendChild(duration);
+
+                feedScroll.insertBefore(item, feedScroll.firstChild);
+            });
+
+            // Keep only last 50 events
+            while (feedScroll.children.length > 50) {
+                feedScroll.removeChild(feedScroll.lastChild);
+            }
+        }
+
+        function displayEvent(event, report) {
+            const display = document.getElementById('eventDisplay');
+            display.innerHTML = '';
+
+            const eventText = document.createElement('div');
+            eventText.className = 'event-text';
+            eventText.textContent = report || 'Something happened...';
+            display.appendChild(eventText);
+
+            // Display combat logs if present
+            if (event && event.report && Array.isArray(event.report)) {
+                event.report.forEach(log => {
+                    const logDiv = document.createElement('div');
+                    logDiv.className = 'combat-log';
+                    logDiv.textContent = log;
+                    display.appendChild(logDiv);
+                });
+            }
+
+            // Display result if present (for combat)
+            if (event && event.result) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'event-text';
+                resultDiv.textContent = event.result;
+                resultDiv.style.marginTop = '15px';
+                display.appendChild(resultDiv);
+            }
+        }
+
+        function showItemChoice(event) {
+            const buttons = document.getElementById('actionButtons');
+            buttons.innerHTML = '';
+
+            const item = event.value;
+
+            // Item preview
+            const preview = document.createElement('div');
+            preview.className = 'item-preview';
+            preview.innerHTML = `
+                <h3>${item.name}</h3>
+                <div class="item-stats">
+                    ${item.attack_add ? `+${item.attack_add} ATK ` : ''}
+                    ${item.hp_add ? `+${item.hp_add} HP ` : ''}
+                    ${item.speed_add ? `+${item.speed_add} SPD ` : ''}
+                </div>
+            `;
+            buttons.appendChild(preview);
+
+            // Action buttons
+            const buttonGroup = document.createElement('div');
+            buttonGroup.className = 'action-buttons';
+
+            const equipBtn = document.createElement('button');
+            equipBtn.textContent = '✓ Equip Item';
+            equipBtn.onclick = () => resolveAction(event, 'equip');
+
+            const rejectBtn = document.createElement('button');
+            rejectBtn.className = 'btn-reject';
+            rejectBtn.textContent = '✗ Leave It';
+            rejectBtn.onclick = () => resolveAction(event, 'reject');
+
+            buttonGroup.appendChild(equipBtn);
+            buttonGroup.appendChild(rejectBtn);
+            buttons.appendChild(buttonGroup);
+        }
+
+        function showContinueButton() {
+            const buttons = document.getElementById('actionButtons');
+            buttons.innerHTML = '';
+
+            const buttonGroup = document.createElement('div');
+            buttonGroup.className = 'action-buttons';
+
+            const continueBtn = document.createElement('button');
+            continueBtn.textContent = '→ Continue';
+            continueBtn.onclick = executeTurn;
+
+            buttonGroup.appendChild(continueBtn);
+            buttons.appendChild(buttonGroup);
+        }
+
+        function showGameOver() {
+            const display = document.getElementById('eventDisplay');
+            display.innerHTML = `
+                <div class="game-over">
+                    <h2>☠️ GAME OVER</h2>
+                    <p>You have fallen in the dungeon...</p>
+                </div>
+            `;
+
+            const buttons = document.getElementById('actionButtons');
+            buttons.innerHTML = '';
+
+            const buttonGroup = document.createElement('div');
+            buttonGroup.className = 'action-buttons';
+
+            const endBtn = document.createElement('button');
+            endBtn.textContent = 'End Game';
+            endBtn.onclick = endGame;
+
+            buttonGroup.appendChild(endBtn);
+            buttons.appendChild(buttonGroup);
+        }
+
+        async function executeTurn() {
+            if (isProcessing || gameOver) return;
+            isProcessing = true;
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/game/turn`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_token: sessionToken,
+                        language: language
+                    })
+                });
+
+                if (!response.ok) throw new Error('Turn failed');
+
+                const data = await response.json();
+
+                updateStats(data.player_state);
+                addBackendEvents(data.backend_events);
+
+                if (data.event) {
+                    displayEvent(data.event, data.event.report);
+
+                    if (data.event.needs_input) {
+                        showItemChoice(data.event);
+                    } else {
+                        // Check if player died
+                        if (data.player_state.hp <= 0) {
+                            gameOver = true;
+                            showGameOver();
+                        } else {
+                            showContinueButton();
+                        }
+                    }
+                } else {
+                    showContinueButton();
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error executing turn: ' + error.message);
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        async function resolveAction(event, decision) {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/game/resolve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_token: sessionToken,
+                        language: language,
+                        event_type: event.type,
+                        event_value: event.value,
+                        decision: decision
+                    })
+                });
+
+                if (!response.ok) throw new Error('Resolve failed');
+
+                const data = await response.json();
+
+                updateStats(data.player_state);
+                addBackendEvents(data.backend_events);
+
+                const display = document.getElementById('eventDisplay');
+                const resultText = document.createElement('div');
+                resultText.className = 'event-text';
+                resultText.textContent = data.result_message;
+                resultText.style.marginTop = '15px';
+                display.appendChild(resultText);
+
+                setTimeout(() => executeTurn(), 1500);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error resolving action: ' + error.message);
+                isProcessing = false;
+            }
+        }
+
+        async function endGame() {
+            try {
+                const response = await fetch(`${API_URL}/api/v1/game/end`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_token: sessionToken })
+                });
+
+                if (!response.ok) throw new Error('End game failed');
+
+                const data = await response.json();
+                addBackendEvents(data.backend_events);
+
+                sessionStorage.clear();
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error ending game: ' + error.message);
+            }
+        }
+
+        // Start first turn
+        executeTurn();
+    </script>
+</body>
+</html>
